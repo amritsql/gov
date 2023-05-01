@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: fe
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: amrit96/counter:7
+          resources:
+            requests:
+              memory: "300Mi"
+              cpu: "200m"
+          livenessProbe: 
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          #command: ["/usr/bin/bash", "-c"]
+          #args: ["echo Hello, World && tail -f /var/log/nginx/access.log"]
+          #command: ["/bin/bash", "-c", "mysql -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD -P $MYSQL_PORT $MYSQL_DATABASE"]
+          #command: ["mysql"]
+          args: ["-h", "mysql-service.be.svc.cluster.local", "-u", "root", "-pmysecretpassword", "-P", "3306" ,"mydb" ,"-e", "CREATE TABLE IF NOT EXISTS users (id INT PRIMARY KEY AUTO_INCREMENT,username VARCHAR(50) NOT NULL);"]
+          env:
+            - name: MYSQL_HOST
+              value: "mysql-service.be.svc.cluster.local" 
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secrets
+                  key: username
+            - name: MYSQL_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secrets
+                  key: password
+            - name: MYSQL_DATABASE
+              value: mydb
+            - name: MYSQL_PORT
+              value: "3306"
+            - name: CREATOR
+              value: AMRIT
+            - name: SQL
+              value: "'CREATE TABLE IF NOT EXISTS test (id INT PRIMARY KEY AUTO_INCREMENT,username VARCHAR(50) NOT NULL)';"
+          ports:
+            - containerPort: 80
+              name: http
+#          command: ["bash", "-c", "./script.sh"]
+          #command: ["mysql"]
+          #args: ["-h", "$(MYSQL_HOST)", "-u", "$(MYSQL_USER)", "-p$(MYSQL_PWD)", "-P", "$(MYSQL_PORT)" , "$(MYSQL_DATABASE)" , "-e" , "$(SQL)"]
+          command: ["sh","-c","while true; do mysql -h  $(MYSQL_HOST) -u $(MYSQL_USER) -p$(MYSQL_PWD) -P $(MYSQL_PORT) $(MYSQL_DATABASE) -e $(SQL) sleep 10; done"] 
+          #command: ["sh", "-c", "while true; do mysql -h $(MYSQL_HOST) -u $(MYSQL_USER) -p$(MYSQL_PWD) -P $(MYSQL_PORT) $(MYSQL_DATABASE) -e 'CREATE TABLE IF NOT EXISTS users (id INT PRIMARY KEY AUTO_INCREMENT, username VARCHAR(50) NOT NULL)'; sleep 10; done"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: fe
+spec:
+  selector:
+    app: nginx
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer
