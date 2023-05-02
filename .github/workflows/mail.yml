@@ -12,8 +12,6 @@ jobs:
     steps:
     - name: Checkout source code
       uses: actions/checkout@v2
-    - name: Change directory to AWS
-      run: cd aws
     - name: Install Terraform
       run: |
         TERRAFORM_VERSION="1.4.6"
@@ -30,6 +28,10 @@ jobs:
         aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
         aws configure set region $REGION
     - name: Initialize Terraform
-      run: terraform init
+      run: |
+        cd aws 
+        terraform init
     - name: Plan Terraform
-      run: terraform plan 
+      run: |
+        cd aws
+        terraform plan 
