@@ -12,6 +12,8 @@ jobs:
     steps:
     - name: Checkout source code
       uses: actions/checkout@v2
+    - name: Change directory to AWS
+      run: cd aws
     - name: Install Terraform
       run: |
         TERRAFORM_VERSION="1.4.6"
